@@ -81,7 +81,7 @@ To set it up, you need to do the following:
 3. Create a new Lambda function. Skip the blueprint. 
 4. Pick any name you want, and choose runtime Node.js.
 5. Go into this repo's [lambda/src](lamda/src) directory and copy options.example.js to options.js. Edit options.js to have your DynDNS hostname, your port, and the Alexa App ID you just copied.
-6. In lambda/src, zip up everything. On Mac/Linux, `cd src; chmod a+r *.js; zip src.zip *.js`.  Make sure you don't capture the folder, just the files.
+6. In lambda/src, zip up everything. On Mac/Linux, `cd src; chmod a+r *.js; zip index.zip index.js`.  Make sure you don't capture the folder, just the files.
 7. Choose to upload the zip file for src.zip.
 8. The default handler is fine. Create a new role of type Basic Execution Role. Pick smallest possible memory and so on.
 9. Click Next to proceed. Once created, click "Event Sources".
@@ -144,15 +144,9 @@ This creates a key and certificate that will last for 10 years. I'm guessing you
 2. If your Lambda test doesn't work, then you might have a case mis-match between the preset name in presets.json and the value in the Lambda test. It's also possible Lambda can't reach your host because your DynDNS setup isn't working, or a firewall is blocking it. If you're unsure, try the Maker plugin on IFTTT, to see if you can get it working externally from someplace else.
 3. If Alexa says something about not being able to use your skill, then Lambda is probably returning an error. Check the Lambda logs. Alexa will say this if she doesn't see a proper response from the Lambda server.
 
+# Contributing & Support
 This repository comes with absolutely NO support.
 
-# Upgrade Checklist
-When upgrading your code to the latest version, make sure you do the following:
-
-1. In the Interaction Model under the Alexa Skills Kit console, update the Intents, the Utterances, and the three Custom Slot Types
-2. Zip all of the .js files (without the folder - just the .js) and update them in Lambda. The most common problem on Lambda is accidentally uploading the folder. If you'd like to use the pretty Lambda inline editor then go ahead and hit the commmand line in Terminal, navigate to your lambda/src directory and type the following "zip index.zip index.js". If you use the Mac OS GUI compressor you'll end up with multiple hidden _MACOS files in your zip archive. Those hidden files wont hurt anything but it will prevent you from using the inline editor which can be handy for real time hacking of your Lambda code.
-
-# Contributing
 Fork it, steal it, repurpose it as commercial code, just don't ask for my help :) 
 
 This originally came from the echo-sonos project but it was largely focused on the presets and accessing Sonos favorites which I found to be annoying. In theory you can hack this code to work for Pandora or Spotify instead of Apple Music by just changing a few lines.
