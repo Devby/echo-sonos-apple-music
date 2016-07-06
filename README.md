@@ -5,8 +5,8 @@ All of the pieces for an Amazon Echo (Alexa) <-> Sonos Apple Music integration. 
 
 Global commands (no rooms required):
 
-* Artists: "Alexa, tell Sonos to play Katy Perry in the Office"
-* Artists: "Alexa, tell Sonos to play Katy Perry radio in the Office"
+* Artists: "Alexa, tell Sonos to play Grimes in the Office"
+* Artists: "Alexa, tell Sonos to play Grimes radio in the Office"
 * Pause all: "Alexa, tell Sonos to pause all"
 * Resume all: "Alexa, tell Sonos to resume all"
 
