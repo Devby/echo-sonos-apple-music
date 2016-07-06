@@ -1,5 +1,5 @@
 # echo-sonos-apple-music
-All of the pieces for an Amazon Echo (Alexa) <-> Sonos Apple Music integration
+All of the pieces for an Amazon Echo (Alexa) <-> Sonos Apple Music integration. This code is live in my home with a high Wife Acceptance Factor (WAF).
 
 # Usage
 
@@ -38,11 +38,17 @@ The service is also smart enough to control your whole group when given only a r
 # How it works
 
 1. When you say the command to Alexa, it triggers the Alexa skill with invocation name Sonos. 
-2. The Alexa skill calls a web service running on AWS Lambda, passing it the channel name ("rock" in the example). AWS Lambda is either free or ridiculously cheap (think 10 cents a month).
+2. The Alexa skill calls a web service running on AWS Lambda, passing it the channel name ("rock" in the example). AWS Lambda is either free or ridiculously cheap (think 10 cents a month. If you can't afford Lambda how did you afford a Sonos?).
 3. Lambda then fires an HTTP request to a node.js server running node-sonos-http-api on your local network. 
 4. node-sonos-http-api interprets the command and relays to Sonos over your local network.
-5. If you're using an OSX/MacOS server in your house, check the servers folder for com.sonos.server.plist which is a Launchctl  plist - you will want to symlink your /usr/local/lib/node_modules/sonos-http-api/server.js to /usr/local/bin/sonos - you'll need to add the "#!/usr/bin/env node" as the first line of that file so it can be executed without calling node.
-
+5. If you're using an OSX/MacOS server in your house, check the servers folder for com.sonos.server.plist which is a Launchctl  plist - you will want to:
+```
+ln -ls /usr/local/lib/node_modules/sonos-http-api/server.js /usr/local/bin/sonos
+```
+You'll need to add the following as the first line of that file so it can be executed without calling node:
+```
+#!/usr/bin/env node
+``` 
 Included here are the Alexa API definitions, the Lambda AWS service that catches the Alexa requests, and an example preset configuration for jishi's node-sonos-http-api to actually play the music.
 
 To set it up, you need to do the following:
@@ -98,7 +104,7 @@ Both HTTPS and basic auth need to be configured on node-sonos-http-api before ec
 I HIGHLY recommend you password protect and use SSL or you run the very real risk of some random person port scanning your network and having fun playing music in your house.
 
 An example might look like this:
-
+```
     {
         "port": 5005,
         "securePort": 5006,
@@ -113,19 +119,23 @@ An example might look like this:
             "password": "MAKE_UP_A_PASSWORD"
         }
     }
-
+```
 ## Certificate creation
 In the above example, HTTPS is configured using "yourserver.key" and "yourserver.crt".  You can buy a certificate but it's quite honestly just as secure to generate your own free ones. On Mac OSX just copy and paste the following into a terminal window. When the openssl req command asks for a “challenge password”, just press return, leaving the password empty.
 
+```
 openssl genrsa -des3 -passout pass:x -out server.pass.key 2048
 openssl rsa -passin pass:x -in server.pass.key -out server.key
 rm -f server.pass.key
 openssl req -new -key server.key -out server.csr
+```
 
 At this point you need to answer some questions on the interactive command line. Most important is the "common name". If you used Dynamic DNS your hostname may be something like "myhomenetwork.dyndns.org". That hostname without the quotes is your common name.
 
 Then paste:
+```
 openssl x509 -req -sha256 -days 3650 -in server.csr -signkey server.key -out server.crt
+```
 
 This creates a key and certificate that will last for 10 years. I'm guessing your server won't last that long.
 
