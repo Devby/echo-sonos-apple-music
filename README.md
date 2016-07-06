@@ -6,7 +6,7 @@ All of the pieces for an Amazon Echo (Alexa) <-> Sonos Apple Music integration
 Global commands (no rooms required):
 
 * Artists: "Alexa, tell Sonos to play Katy Perry in the Office"
-* Artists: "Alexa, tell Sonos to play Katey Perry radio in the Office"
+* Artists: "Alexa, tell Sonos to play Katy Perry radio in the Office"
 * Pause all: "Alexa, tell Sonos to pause all"
 * Resume all: "Alexa, tell Sonos to resume all"
 
@@ -38,10 +38,10 @@ The service is also smart enough to control your whole group when given only a r
 # How it works
 
 1. When you say the command to Alexa, it triggers the Alexa skill with invocation name Sonos. 
-2. The Alexa skill calls a web service running on AWS Lambda, passing it the preset name ("rock" in the example). 
+2. The Alexa skill calls a web service running on AWS Lambda, passing it the channel name ("rock" in the example). AWS Lambda is either free or ridiculously cheap (think 10 cents a month).
 3. Lambda then fires an HTTP request to a node.js server running node-sonos-http-api on your local network. 
 4. node-sonos-http-api interprets the command and relays to Sonos over your local network.
-5. If you're using an OSX/MacOS server in your house, check the servers folder for com.sonos.server.plist which is a Launchctl  plist - you will want to symlink your /usr/local/lib/node_modules/sonos-http-api/server.js to /usr/local/bin/sonos
+5. If you're using an OSX/MacOS server in your house, check the servers folder for com.sonos.server.plist which is a Launchctl  plist - you will want to symlink your /usr/local/lib/node_modules/sonos-http-api/server.js to /usr/local/bin/sonos - you'll need to add the "#!/usr/bin/env node" as the first line of that file so it can be executed without calling node.
 
 Included here are the Alexa API definitions, the Lambda AWS service that catches the Alexa requests, and an example preset configuration for jishi's node-sonos-http-api to actually play the music.
 
@@ -95,6 +95,8 @@ Securing node-sonos-http-api, HTTPS, and your home server are outside the bounds
 
 Both HTTPS and basic auth need to be configured on node-sonos-http-api before echo-sonos can use them.  You can configure one without the other, but they are recommended together.  In your node-sonos-http-api directory, create a file called settings.json according to the node-sonos-http-api documentation.  
 
+I HIGHLY recommend you password protect and use SSL or you run the very real risk of some random person port scanning your network and having fun playing music in your house.
+
 An example might look like this:
 
     {
@@ -102,8 +104,8 @@ An example might look like this:
         "securePort": 5006,
 
         "https": {
-            "key": "/path_to/yourserver.key",
-            "cert": "/path_to/yourserver.crt"
+            "key": "/path_to/server.key",
+            "cert": "/path_to/server.crt"
         },
 
         "auth": {
@@ -113,21 +115,34 @@ An example might look like this:
     }
 
 ## Certificate creation
-In the above example, HTTPS is configured using "yourserver.key" and "yourserver.crt".  For utmost security, it's best to purchase a certificate from a reputable certificate authority such as [Digicert](https://www.digicert.com).  You could also use a free one from a service like [LetsEncrypt.org](https://letsencrypt.org).  A final option for those who know what they're doing is to self-sign, and if you choose this route, then you must set "rejectUnauthorized" to "false" in options.js.
+In the above example, HTTPS is configured using "yourserver.key" and "yourserver.crt".  You can buy a certificate but it's quite honestly just as secure to generate your own free ones. On Mac OSX just copy and paste the following into a terminal window. When the openssl req command asks for a “challenge password”, just press return, leaving the password empty.
+
+openssl genrsa -des3 -passout pass:x -out server.pass.key 2048
+openssl rsa -passin pass:x -in server.pass.key -out server.key
+rm -f server.pass.key
+openssl req -new -key server.key -out server.csr
+
+At this point you need to answer some questions on the interactive command line. Most important is the "common name". If you used Dynamic DNS your hostname may be something like "myhomenetwork.dyndns.org". That hostname without the quotes is your common name.
+
+Then paste:
+openssl x509 -req -sha256 -days 3650 -in server.csr -signkey server.key -out server.crt
+
+This creates a key and certificate that will last for 10 years. I'm guessing your server won't last that long.
 
 # Troubleshooting
 1. If you have trouble with your node server not triggering the music even when you hit it on localhost, it probably can't find Sonos. If it crashes with a message about "discovery" being "null" then that's definitely the case. Usually you're on the wrong wifi network, you forgot to close your Sonos application (which screws everything up), or your server died for some reason and you didn't notice.
 2. If your Lambda test doesn't work, then you might have a case mis-match between the preset name in presets.json and the value in the Lambda test. It's also possible Lambda can't reach your host because your DynDNS setup isn't working, or a firewall is blocking it. If you're unsure, try the Maker plugin on IFTTT, to see if you can get it working externally from someplace else.
 3. If Alexa says something about not being able to use your skill, then Lambda is probably returning an error. Check the Lambda logs. Alexa will say this if she doesn't see a proper response from the Lambda server.
-4. If you run into a syntax error on node-sonos-http-api that looks something like "Syntax error in module 'index': SyntaxError at exports.runInThisContext", then it's likely that you inadvertently edited presets.json with a rich text editor and it replaced some of your quotation marks with quotes from a weird character set.  Try pasting your presets.json into a JSON linter like [jsonlint.com](http://www.jsonlint.com) and it should point out this error.
 
 This repository comes with absolutely NO support.
 
 # Upgrade Checklist
 When upgrading your code to the latest version, make sure you do the following:
 
-1. In the Interaction Model under the Alexa Skills Kit console, update the Intents, the Utterances, and the two Custom Slot Types
-2. Zip all of the .js files (without the folder - just the .js) and update them in Lambda
+1. In the Interaction Model under the Alexa Skills Kit console, update the Intents, the Utterances, and the three Custom Slot Types
+2. Zip all of the .js files (without the folder - just the .js) and update them in Lambda. The most common problem on Lambda is accidentally uploading the folder. If you'd like to use the pretty Lambda inline editor then go ahead and hit the commmand line in Terminal, navigate to your lambda/src directory and type the following "zip index.zip index.js". If you use the Mac OS GUI compressor you'll end up with multiple hidden _MACOS files in your zip archive. Those hidden files wont hurt anything but it will prevent you from using the inline editor which can be handy for real time hacking of your Lambda code.
 
 # Contributing
-Lots of people are forking echo-sonos, which is awesome. I'd love to bring some of that innovation back into the project, so don't be shy about submitting pull requests!
+Fork it, steal it, repurpose it as commercial code, just don't ask for my help :) 
+
+This originally came from the echo-sonos project but it was largely focused on the presets and accessing Sonos favorites which I found to be annoying. In theory you can hack this code to work for Pandora or Spotify instead of Apple Music by just changing a few lines.
