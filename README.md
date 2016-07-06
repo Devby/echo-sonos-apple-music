@@ -143,6 +143,7 @@ This creates a key and certificate that will last for 10 years. I'm guessing you
 1. If you have trouble with your node server not triggering the music even when you hit it on localhost, it probably can't find Sonos. If it crashes with a message about "discovery" being "null" then that's definitely the case. Usually you're on the wrong wifi network, you forgot to close your Sonos application (which screws everything up), or your server died for some reason and you didn't notice.
 2. If your Lambda test doesn't work, then you might have a case mis-match between the preset name in presets.json and the value in the Lambda test. It's also possible Lambda can't reach your host because your DynDNS setup isn't working, or a firewall is blocking it. If you're unsure, try the Maker plugin on IFTTT, to see if you can get it working externally from someplace else.
 3. If Alexa says something about not being able to use your skill, then Lambda is probably returning an error. Check the Lambda logs. Alexa will say this if she doesn't see a proper response from the Lambda server.
+4. If you are asking it to play something and Alexa keeps getting it wrong, enter the utterance into the CHANNEL slot. Alexa voice recognition is exceptional but at times it may mess up names.
 
 # Contributing & Support
 This repository comes with absolutely NO support.
