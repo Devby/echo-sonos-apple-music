@@ -3,9 +3,208 @@
 var http = require('http');
 var https = require('https');
 
-var options = require('./options');
+// If you setup basic auth in node-sonos-http-api's settings.json, change the username
+// and password here.  Otherwise, just leave this alone and it will work without auth.
 
-var AlexaSkill = require('./AlexaSkill');
+var auth = new Buffer("MAKE_UP_A_USERNAME" + ":" + "MAKE_UP_A_PASSWORD").toString("base64");
+
+var options = {
+  appid: "YOUR_ALEXA_APP_ID",
+  host: "YOUR_HOME_SERVER_HOST_OR_IP-MAYBE-USE-DDNS",
+  port: "5006",
+  headers: {
+      'Authorization': 'Basic ' + auth,
+      'Content-Type': 'application/json'
+  },
+  useHttps: true,
+  rejectUnauthorized: false
+};
+
+var AlexaSkill = function(appId) {
+    this._appId = appId;
+};
+
+AlexaSkill.speechOutputType = {
+    PLAIN_TEXT: 'PlainText',
+    SSML: 'SSML'
+};
+
+AlexaSkill.prototype.requestHandlers = {
+    LaunchRequest: function (event, context, response) {
+        this.eventHandlers.onLaunch.call(this, event.request, event.session, response);
+    },
+
+    IntentRequest: function (event, context, response) {
+        this.eventHandlers.onIntent.call(this, event.request, event.session, response);
+    },
+
+    SessionEndedRequest: function (event, context) {
+        this.eventHandlers.onSessionEnded(event.request, event.session);
+        context.succeed();
+    }
+};
+
+/**
+ * Override any of the eventHandlers as needed
+ */
+AlexaSkill.prototype.eventHandlers = {
+    /**
+     * Called when the session starts.
+     * Subclasses could have overriden this function to open any necessary resources.
+     */
+    onSessionStarted: function (sessionStartedRequest, session) {
+    },
+
+    /**
+     * Called when the user invokes the skill without specifying what they want.
+     * The subclass must override this function and provide feedback to the user.
+     */
+    onLaunch: function (launchRequest, session, response) {
+        //really only called when the user does not specify an intent
+        response.ask("What should I tell the Sonos to do?");
+    },
+
+    /**
+     * Called when the user specifies an intent.
+     */
+    onIntent: function (intentRequest, session, response) {
+        var intent = intentRequest.intent,
+            intentName = intentRequest.intent.name,
+            intentHandler = this.intentHandlers[intentName];
+        if (intentHandler) {
+            console.log('dispatch intent = ' + intentName);
+            intentHandler.call(this, intent, session, response);
+        } else {
+            throw 'Unsupported intent = ' + intentName;
+        }
+    },
+
+    /**
+     * Called when the user ends the session.
+     * Subclasses could have overriden this function to close any open resources.
+     */
+    onSessionEnded: function (sessionEndedRequest, session) {
+    }
+};
+
+/**
+ * Subclasses should override the intentHandlers with the functions to handle specific intents.
+ */
+AlexaSkill.prototype.intentHandlers = {};
+
+AlexaSkill.prototype.execute = function (event, context) {
+    try {
+        console.log("session applicationId: " + event.session.application.applicationId);
+
+        // Validate that this request originated from authorized source.
+        if (this._appId && event.session.application.applicationId !== this._appId) {
+            console.log("The applicationIds don't match : " + event.session.application.applicationId + " and "
+                + this._appId);
+            throw "Invalid applicationId";
+        }
+
+        if (!event.session.attributes) {
+            event.session.attributes = {};
+        }
+
+        if (event.session.new) {
+            this.eventHandlers.onSessionStarted(event.request, event.session);
+        }
+
+        // Route the request to the proper handler which may have been overriden.
+        var requestHandler = this.requestHandlers[event.request.type];
+        requestHandler.call(this, event, context, new Response(context, event.session));
+    } catch (e) {
+        console.log("Unexpected exception " + e);
+        context.fail(e);
+    }
+};
+
+var Response = function (context, session) {
+    this._context = context;
+    this._session = session;
+};
+
+function createSpeechObject(optionsParam) {
+    if (optionsParam && optionsParam.type === 'SSML') {
+        return {
+            type: optionsParam.type,
+            ssml: optionsParam.speech
+        };
+    } else {
+        return {
+            type: optionsParam.type || 'PlainText',
+            text: optionsParam.speech || optionsParam
+        };
+    }
+}
+
+Response.prototype = (function () {
+    var buildSpeechletResponse = function (options) {
+        var alexaResponse = {
+            outputSpeech: createSpeechObject(options.output),
+            shouldEndSession: options.shouldEndSession
+        };
+        if (options.reprompt) {
+            alexaResponse.reprompt = {
+                outputSpeech: createSpeechObject(options.reprompt)
+            };
+        }
+        if (options.cardTitle && options.cardContent) {
+            alexaResponse.card = {
+                type: "Simple",
+                title: options.cardTitle,
+                content: options.cardContent
+            };
+        }
+        var returnResult = {
+                version: '1.0',
+                response: alexaResponse
+        };
+        if (options.session && options.session.attributes) {
+            returnResult.sessionAttributes = options.session.attributes;
+        }
+        return returnResult;
+    };
+
+    return {
+        tell: function (speechOutput) {
+            this._context.succeed(buildSpeechletResponse({
+                session: this._session,
+                output: speechOutput,
+                shouldEndSession: true
+            }));
+        },
+        tellWithCard: function (speechOutput, cardTitle, cardContent) {
+            this._context.succeed(buildSpeechletResponse({
+                session: this._session,
+                output: speechOutput,
+                cardTitle: cardTitle,
+                cardContent: cardContent,
+                shouldEndSession: true
+            }));
+        },
+        ask: function (speechOutput, repromptSpeech) {
+            this._context.succeed(buildSpeechletResponse({
+                session: this._session,
+                output: speechOutput,
+                reprompt: repromptSpeech,
+                shouldEndSession: false
+            }));
+        },
+        askWithCard: function (speechOutput, repromptSpeech, cardTitle, cardContent) {
+            this._context.succeed(buildSpeechletResponse({
+                session: this._session,
+                output: speechOutput,
+                reprompt: repromptSpeech,
+                cardTitle: cardTitle,
+                cardContent: cardContent,
+                shouldEndSession: false
+            }));
+        }
+    };
+})();
+
 var EchoSonos = function () {
     AlexaSkill.call(this, options.appid);
 };
@@ -21,22 +220,14 @@ EchoSonos.prototype.constructor = EchoSonos;
 
 EchoSonos.prototype.intentHandlers = {
     // register custom intent handlers
-    PlayIntent: function (intent, session, response) {
-        console.log("PlayIntent received");
-        options.path = '/preset/' + encodeURIComponent(intent.slots.Preset.value.toLowerCase());
-        httpreq(options, function(error) {
-            genericResponse(error, response);
-        });
+    PlayIntent: function (intent, session, response) {  
+	    console.log("Play Intent received for channel " + intent.slots.Channel.value + " in room " + intent.slots.Room.value);
+        playlistHandler(intent.slots.Room.value, intent.slots.Channel.value, '/applemusic/queue/name:', response);
     },
-
-    PlaylistIntent: function (intent, session, response) {  
-        console.log("PlaylistIntent received");
-        playlistHandler(intent.slots.Room.value, intent.slots.Preset.value, 'playlist', response);
-    },
-
-    FavoriteIntent: function (intent, session, response) {
-        console.log("FavoriteIntent received");
-        playlistHandler(intent.slots.Room.value, intent.slots.Preset.value, 'favorite', response);
+    
+    RadioIntent: function (intent, session, response) {  
+	    console.log("Radio Intent received for channel " + intent.slots.Channel.value + " in room " + intent.slots.Room.value);
+        playlistHandler(intent.slots.Room.value, intent.slots.Channel.value, '/applemusic/radio/radio:', response);
     },
 
     ResumeAllIntent: function (intent, session, response) {
@@ -59,7 +250,7 @@ EchoSonos.prototype.intentHandlers = {
         console.log("PauseAllIntent received");
         options.path = '/pauseall';
         httpreq(options, function(error) {
-            genericResponse(error, response);
+            genericResponse(error, response, 'Done.');
         });
     },
 
@@ -103,8 +294,13 @@ EchoSonos.prototype.intentHandlers = {
 
     WhatsPlayingIntent: function (intent, session, response) {
         console.log("WhatsPlayingIntent received");
+        if (typeof intent.slots.Room.value === 'undefined'){
+		    response.tell("If you'd like to know what is playing you will need to specify a room when you ask me that question.");
+		    return;	
+	    } else {
+	        console.log('Room value is of type: ' + typeof intent.slots.Room.value);
+	    }
         options.path = '/' + encodeURIComponent(intent.slots.Room.value) + '/state';
-
         httpreq(options, function (error, responseJson) {
             if (!error) {
                 responseJson = JSON.parse(responseJson);
@@ -172,22 +368,28 @@ EchoSonos.prototype.intentHandlers = {
             genericResponse(error, response);
         });
     }
-}
+};
 
 /** Handles playlists and favorites */
 function playlistHandler(roomValue, presetValue, skillName, response) {
-    var skillPath = '/' + skillName + '/' + encodeURIComponent(presetValue.toLowerCase());
+    var skillPath = skillName + encodeURIComponent(presetValue.toLowerCase());
     
     // This first action queues up the playlist / favorite, and it shouldn't say anything unless there's an error
     actOnCoordinator(options, skillPath, roomValue, function(error, responseBodyJson) {
         if (error) {
             genericResponse(error, response);
+        } else {
+            // The 2nd action actually plays the playlist / favorite - sometimes this starts before the sonos has queued up the new music though so lets wait a moment
+            setTimeout(function() {
+                actOnCoordinator(options, '/play', roomValue, function(error, responseBodyJson) {
+                    if(skillName === '/applemusic/radio/radio:'){
+                        genericResponse(error, response, "Starting a " + presetValue + " radio station.");
+                    } else {
+                        genericResponse(error, response, "Starting " + presetValue);
+                    }
+                });
+            }, 1000);
         }
-    });
-    
-    // The 2nd action actually plays the playlist / favorite
-    actOnCoordinator(options, '/play', roomValue, function(error, responseBodyJson) {
-        genericResponse(error, response, "Queued and started " + presetValue);
     });
 }
 
@@ -296,13 +498,13 @@ function actOnCoordinator(options, actionPath, room, onCompleteFun) {
             responseJson = JSON.parse(responseJson);
             var coordinatorRoomName = findCoordinatorForRoom(responseJson, room);
             options.path = '/' + encodeURIComponent(coordinatorRoomName) + actionPath;
-            console.log(options.path);
+            console.log('actOnCoordinator requesting path ' + options.path);
             httpreq(options, onCompleteFun);
         }
         else { 
             onCompleteFun(error);
         }
-    }
+    };
 
     httpreq(options, handleZonesResponse);
 }
@@ -317,7 +519,7 @@ function genericResponse(error, response, success) {
         }
     }
     else {
-        response.tell("The Lambda service encountered an error: " + error.message);
+        response.tell("The Lambda service encountered an error.");
     }
 }
 

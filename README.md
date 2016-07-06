@@ -1,18 +1,17 @@
-# echo-sonos
-All of the pieces for an Amazon Echo (Alexa) <-> Sonos integration.
+# echo-sonos-apple-music
+All of the pieces for an Amazon Echo (Alexa) <-> Sonos Apple Music integration
 
 # Usage
 
 Global commands (no rooms required):
 
-* Presets: "Alexa, tell Sonos to play Rock"
+* Artists: "Alexa, tell Sonos to play Katy Perry in the Office"
+* Artists: "Alexa, tell Sonos to play Katey Perry radio in the Office"
 * Pause all: "Alexa, tell Sonos to pause all"
 * Resume all: "Alexa, tell Sonos to resume all"
 
 Room-specific commands, where "ROOM" could be any of your Sonos room names (eg Kitchen, Master Bedroom, and so on):
 
-* Playlists: "Alexa, tell Sonos to start playlist MY PLAYLIST in the ROOM"
-* Favorites: "Alexa, tell Sonos to play favorite MY FAVORITE in the ROOM"
 * Next: "Alexa, tell Sonos go to the next track in the ROOM"
 * Previous: "Alexa, tell Sonos to go back in the ROOM"
 * What's playing: "Alexa, ask Sonos what's playing in the ROOM"
@@ -42,6 +41,7 @@ The service is also smart enough to control your whole group when given only a r
 2. The Alexa skill calls a web service running on AWS Lambda, passing it the preset name ("rock" in the example). 
 3. Lambda then fires an HTTP request to a node.js server running node-sonos-http-api on your local network. 
 4. node-sonos-http-api interprets the command and relays to Sonos over your local network.
+5. If you're using an OSX/MacOS server in your house, check the servers folder for com.sonos.server.plist which is a Launchctl  plist - you will want to symlink your /usr/local/lib/node_modules/sonos-http-api/server.js to /usr/local/bin/sonos
 
 Included here are the Alexa API definitions, the Lambda AWS service that catches the Alexa requests, and an example preset configuration for jishi's node-sonos-http-api to actually play the music.
 
@@ -50,10 +50,9 @@ To set it up, you need to do the following:
 # Get jishi's node-sonos-http-api working
 1. Install node.js on a server on the same network as your Sonos. 
 2. Grab https://github.com/jishi/node-sonos-http-api and run it on that server.  On Mac, it's "npm install https://github.com/jishi/node-sonos-http-api", then go to the directory created and "npm start".
-3. Take the node-sonos-http-api/presets.json that I have here and drop it into your node-sonos-http-api root directory. Modify it to use your speaker names and your favorite stations. Don't worry about the "uri" field - it's unused. Make sure the preset names are lowercase (like "test" and "rock" in my example). NOTE: You can skip this step if you only want to use Playlists and Favorites, which require no configuration.
-4. Test it by hitting http://yourserverip:5005/zones
-5. If you get a response, great! Now try playing something: http://yourserverip:5005/preset/[your_preset_name]. Or, play a Playlist or Favorite (example: http://yourserverip:5005/kitchen/playlist/myplaylist). To stop, use /pauseall.
-6. If you have problems, make sure you are on the same network as your Sonos AND make sure you don't have a Sonos client running on the same machine. The client can interfere with the node.js server.
+3. Test it by hitting http://yourserverip:5005/zones
+4. If you get a response, great! Now try playing a channel based radio station: http://yourserverip:5005/Office/applemusic/radio/radio:[your_channel_name]. Or, play an artists music or Favorite (example: http://yourserverip:5005/applemusic/queue/name:U2). To stop, use /pauseall.
+5. If you have problems, make sure you are on the same network as your Sonos AND make sure you don't have a Sonos client running on the same machine. The client can interfere with the node.js server.
 
 # Expose your server to the outside world
 1. You need some way for Lambda to contact your server consistently. Services like DynDns and yDNS.eu will give you a consistent hostname for the outside world to use.  If you have an Asus router like I do, then dynamic DNS is actually a built-in / free feature.
@@ -66,8 +65,8 @@ To set it up, you need to do the following:
 1. Create a new Skill in the Alexa Skills control panel on Amazon. You need a developer account to do this.
 2. Name can be whatever you want. "Invocation" is what you say (I used "Sonos").
 3. Check Custom Interaction Model if it is not already checked. Click Next
-4. Click Next, taking you to Interaction Model. Create a Custom Slot Type ("Add Slot Type"). Add a new type for PRESETS, another for ROOMS, and a final one for TOGGLES. Into each, copy/paste the contents of [echo/custom_slots/PRESETS.slot.txt](https://raw.githubusercontent.com/rgraciano/echo-sonos/master/echo/custom_slots/PRESETS.slot.txt), [echo/custom_slots/ROOMS.slot.txt](https://raw.githubusercontent.com/rgraciano/echo-sonos/master/echo/custom_slots/ROOMS.slot.txt) and [echo/custom_slots/TOGGLES.slot.txt](https://raw.githubusercontent.com/rgraciano/echo-sonos/master/echo/custom_slots/TOGGLES.slot.txt).
-5. Still in Interaction Model, copy this repo's [echo/intents.json](https://raw.githubusercontent.com/rgraciano/echo-sonos/master/echo/intents.json) into the "Intent Schema" field, and [echo/utterances.txt](https://raw.githubusercontent.com/rgraciano/echo-sonos/master/echo/utterances.txt) into "Sample Utterances".
+4. Click Next, taking you to Interaction Model. Create a Custom Slot Type ("Add Slot Type"). Add a new type for PRESETS, another for ROOMS, and a final one for TOGGLES. Into each, copy/paste the contents of echo/custom_slots/PRESETS.slot.txt, echo/custom_slots/CHANNEL.slot.txt, echo/custom_slots/ROOMS.slot.txt and echo/custom_slots/TOGGLES.slot.txt
+5. Still in Interaction Model, copy this repo's echo/intents.json into the "Intent Schema" field, and echo/utterances.txt into "Sample Utterances".
 6. Don't test yet, just save. Click back to "Skill Information" and copy the "Application ID". You'll need this for Lambda.
 
 # Configure the AWS Lambda service that will trigger your node-sonos-http-api server
@@ -81,7 +80,7 @@ To set it up, you need to do the following:
 8. The default handler is fine. Create a new role of type Basic Execution Role. Pick smallest possible memory and so on.
 9. Click Next to proceed. Once created, click "Event Sources".
 10. Add a source.  Choose "Alexa Skills Kit".
-11. Test it out. I included a test blueprint in this repo. Click "Test" and copy/paste this repo's [lambda/play_intent_testreq.json](https://raw.githubusercontent.com/rgraciano/echo-sonos/master/lambda/play_intent_testreq.json) to test. It will trigger the "test" preset in your presets.json file on your Sonos server. Don't forget to replace the Alexa App Id again.
+11. Test it out. I included a test blueprint in this repo. Click "Test" and choose an Alexa Services test. You should see some JSON in the console containing "What should I tell sonos to do?"
 
 # Connect Alexa Skill to AWS Lambda
 1. In the Lambda console, copy the long "ARN" string in the upper right.  
@@ -99,17 +98,17 @@ Both HTTPS and basic auth need to be configured on node-sonos-http-api before ec
 An example might look like this:
 
     {
-        "port": 5004,
-        "securePort": 5005,
+        "port": 5005,
+        "securePort": 5006,
 
         "https": {
-            "key": "/home/pi/node-sonos-http-api/yourserver.key",
-            "cert": "/home/pi/node-sonos-http-api/yourserver.crt"
+            "key": "/path_to/yourserver.key",
+            "cert": "/path_to/yourserver.crt"
         },
 
         "auth": {
-            "username": "yourusernamegoeshere",
-            "password": "yourpasswordgoeshere"
+            "username": "MAKE_UP_A_USERNAME",
+            "password": "MAKE_UP_A_PASSWORD"
         }
     }
 
@@ -122,7 +121,7 @@ In the above example, HTTPS is configured using "yourserver.key" and "yourserver
 3. If Alexa says something about not being able to use your skill, then Lambda is probably returning an error. Check the Lambda logs. Alexa will say this if she doesn't see a proper response from the Lambda server.
 4. If you run into a syntax error on node-sonos-http-api that looks something like "Syntax error in module 'index': SyntaxError at exports.runInThisContext", then it's likely that you inadvertently edited presets.json with a rich text editor and it replaced some of your quotation marks with quotes from a weird character set.  Try pasting your presets.json into a JSON linter like [jsonlint.com](http://www.jsonlint.com) and it should point out this error.
 
-If you're still stuck, add a comment on my original [Amazon Echo + Sonos integration](http://ryangraciano.com/post/124770680942/controlling-sonos-with-amazon-echo) blog post and I'll try to help you out.
+This repository comes with absolutely NO support.
 
 # Upgrade Checklist
 When upgrading your code to the latest version, make sure you do the following:

@@ -1,20 +1,8 @@
-PlayIntent play {Preset}
+PlayIntent play {Channel} in {Room}
+PlayIntent play {Channel} in the {Room}
 
-PlaylistIntent playlist {Preset} in {Room}
-PlaylistIntent playlist {Preset} in the {Room}
-PlaylistIntent play playlist {Preset} in {Room}
-PlaylistIntent play playlist {Preset} in the {Room}
-PlaylistIntent start playlist {Preset} in {Room}
-PlaylistIntent start playlist {Preset} in the {Room}
-
-FavoriteIntent favorite {Preset} in {Room}
-FavoriteIntent favorite {Preset} in the {Room}
-FavoriteIntent play {Preset} in {Room}
-FavoriteIntent play {Preset} in the {Room}
-FavoriteIntent play favorite {Preset} in {Room}
-FavoriteIntent play favorite {Preset} in the {Room}
-FavoriteIntent start favorite {Preset} in {Room}
-FavoriteIntent start favorite {Preset} in the {Room}
+RadioIntent start {Channel} radio in {Room}
+RadioIntent start {Channel} radio in the {Room}
 
 ResumeAllIntent resume all
 ResumeAllIntent continue all
@@ -37,6 +25,7 @@ ResumeIntent resume the music in the {Room}
 
 PauseAllIntent pause all
 PauseAllIntent pause all the music
+PauseAllIntent stop
 PauseAllIntent stop all
 PauseAllIntent stop all the music 
 
@@ -151,7 +140,10 @@ WhatsPlayingIntent what band is this in {Room}
 WhatsPlayingIntent what band is this in the {Room}
 WhatsPlayingIntent who's playing in {Room}
 WhatsPlayingIntent who's playing in the {Room}
+WhatsPlayingIntent what am i hearing in {Room}
 WhatsPlayingIntent what am i hearing in the {Room}
+WhatsPlayingIntent what are we listening to in {Room}
+WhatsPlayingIntent what are we listening to in the {Room}
 
 MuteIntent mute in {Room}
 MuteIntent mute in the {Room}
@@ -188,9 +180,16 @@ JoinGroupIntent join {JoiningRoom} to {PlayingRoom}
 JoinGroupIntent join the {JoiningRoom} to {PlayingRoom}
 JoinGroupIntent join {JoiningRoom} to the {PlayingRoom}
 JoinGroupIntent join the {JoiningRoom} to the {PlayingRoom}
+JoinGroupIntent add {JoiningRoom} to {PlayingRoom}
+JoinGroupIntent add the {JoiningRoom} to {PlayingRoom}
+JoinGroupIntent add {JoiningRoom} to the {PlayingRoom}
+JoinGroupIntent add the {JoiningRoom} to the {PlayingRoom}
+JoinGroupIntent group {JoiningRoom} with {PlayingRoom}
+JoinGroupIntent group the {JoiningRoom} with {PlayingRoom}
+JoinGroupIntent group {JoiningRoom} with the {PlayingRoom}
+JoinGroupIntent group the {JoiningRoom} with the {PlayingRoom}
 
 UngroupIntent ungroup {Room}
 UngroupIntent ungroup the {Room}
 UngroupIntent isolate {Room}
 UngroupIntent isolate the {Room}
-

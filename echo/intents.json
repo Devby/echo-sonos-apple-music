@@ -4,40 +4,28 @@
         "intent": "PlayIntent",
         "slots": [
             {
-                "name": "Preset",
-                "type": "PRESETS"
+                "name": "Channel",
+                "type": "CHANNEL"
+            },
+            {
+                "name": "Room",
+                "type": "ROOMS"
             }
         ]
     },
- 
     {
-      "intent": "PlaylistIntent",
-      "slots": [
-        {
-            "name": "Preset",
-            "type": "PRESETS"
-        },
-        {
-            "name": "Room",
-            "type": "ROOMS"
-        }   
-      ]
+        "intent": "RadioIntent",
+        "slots": [
+            {
+                "name": "Channel",
+                "type": "CHANNEL"
+            },
+            {
+                "name": "Room",
+                "type": "ROOMS"
+            }
+        ]
     },
-  
-    {
-      "intent": "FavoriteIntent",
-      "slots": [
-        {
-            "name": "Preset",
-            "type": "PRESETS"
-        },
-        {
-            "name": "Room",
-            "type": "ROOMS"
-        }   
-      ]
-    },
-
     {
       "intent": "PauseIntent",
       "slots": [
@@ -229,4 +217,3 @@
     
   ]
 }
-

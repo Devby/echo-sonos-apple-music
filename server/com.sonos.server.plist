@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>Label</key>
+    <string>com.sonos.server</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/sonos</string>
+        <string>-I</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+            <key>PATH</key>
+            <string>/usr/local/bin/:$PATH</string>
+    </dict>
+    <key>StandardErrorPath</key>
+    <string>~/Library/Logs/sonos.log</string>
+    <key>StandardOutPath</key>
+    <string>~/Library/Logs/sonos.log</string>
+</dict>
+</plist>
+<!--
+
+This is intended to be put in the ~/Library/LaunchAgents" directory and you then run 'launchctl load ~/Library/LaunchAgents/com.sonos.server.plist' and it will forever be kept alive and launched at login.
+
+You could put this into the Mac's default /Library/LaunchDaemons but it requires some additional work on permissions and I'm lazy.
+
+-->
